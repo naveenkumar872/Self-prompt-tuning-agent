@@ -54,4 +54,4 @@ def self_tuning_loop(user_input: str,base_prompt: str,score_threshold: int = 90,
 def process_input(user_input: str):
     default_prompt = "You are a helpful assistant. Complete the following task:\n\n{input}"
     final_output,feedback,all_attempts = self_tuning_loop(user_input=user_input, base_prompt=default_prompt)
-    return final_output,feedback,all_attempts
+    return final_output,feedback,all_attempts 

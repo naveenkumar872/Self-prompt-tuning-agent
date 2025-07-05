@@ -18,5 +18,5 @@ def call_ollama(prompt: str, model: str = "llama2", stream: bool = False) -> str
     except requests.RequestException as e:
         print(f"Error calling Ollama: {e}")
         return "Error"
-
+ 
 
