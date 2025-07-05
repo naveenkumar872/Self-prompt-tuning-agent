@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ Autoprompter: Self-Prompt-Tuning Agent</title>
+  <style>
+    /* Basic styling for the body and overall layout */
+    body {
+      font-family: 'Roboto', sans-serif; /* Changed font to Roboto */
+      background-color: #1A202C; /* Dark Blue-Grey background */
+      color: #E2E8F0; /* Off-white text color for readability */
+      margin: 0;
+      display: flex; /* Use flexbox for sidebar layout */
+      min-height: 100vh; /* Ensure body takes full viewport height */
+    }
+
+    /* Main content area, takes available space */
+    .main-content {
+      flex-grow: 1;
+      padding: 40px;
+      transition: margin-left .5s; /* Smooth transition for content shift */
+    }
+
+    /* Header styling */
+    h2 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: #E2E8F0; /* Soft off-white for main heading */
+    }
+
+    /* Form container styling */
+    form {
+      background: #2D3748; /* Medium Dark Blue-Grey for form background */
+      padding: 25px;
+      border-radius: 12px; /* More rounded corners */
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* Softer, deeper shadow */
+    }
+
+    /* Textarea styling */
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 15px;
+      font-size: 1rem;
+      border: 1px solid #4A5568; /* Darker Blue-Grey subtle border */
+      border-radius: 8px;
+      background: #4A5568; /* Darker Blue-Grey input background */
+      color: #E2E8F0;
+      resize: vertical;
+      min-height: 120px; /* Minimum height for textarea */
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #63B3ED; /* Light Blue focus color */
+      box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.5); /* Soft glow on focus */
+    }
+
+    /* Button styling */
+    button {
+      margin-top: 15px;
+      padding: 12px 25px;
+      font-size: 1.05rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #63B3ED; /* Light Blue button */
+      color: #fff; /* White text on button */
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    button:hover {
+      background-color: #4299E1; /* Medium Blue on hover */
+      transform: translateY(-2px); /* Slight lift effect */
+    }
+
+    button:active {
+      transform: translateY(0); /* Press effect */
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Styling for individual attempt blocks */
+    .attempt {
+      background: #2D3748; /* Medium Dark Blue-Grey for attempt background */
+      border-left: 4px solid #63B3ED; /* Light Blue accent */
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Hide attempts by default */
+    #all-attempts {
+      margin-top: 25px;
+      display: none;
+    }
+
+    /* Output section styling */
+    .output-section {
+      background-color: #2D3748; /* Medium Dark Blue-Grey for output section */
+      padding: 25px;
+      border-radius: 12px;
+      margin-top: 30px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Sub-heading styling */
+    h3 {
+      color: #4FD1C5; /* Teal for subheadings */
+      margin-bottom: 15px;
+      font-size: 1.8rem;
+    }
+
+    /* Strong text styling */
+    strong {
+      color: #90CDF4; /* Lighter Blue for strong text */
+    }
+
+    /* Style for the output paragraph to preserve newlines */
+    .output-text {
+      white-space: pre-wrap; /* Preserves whitespace and wraps text */
+    }
+
+    /* Sidebar styles */
+    .sidebar {
+      height: 100%;
+      width: 0; /* Initially closed */
+      position: fixed; /* Fixed position */
+      z-index: 1000; /* High z-index to be on top */
+      top: 0;
+      left: 0;
+      background-color: #1A202C; /* Same as body background for consistency */
+      overflow-x: hidden; /* Hide horizontal scrollbar */
+      transition: 0.5s; /* Smooth transition for opening/closing */
+      padding-top: 60px; /* Space for close button */
+      box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5); /* Shadow for depth */
+      border-right: 1px solid #4A5568; /* Subtle border */
+    }
+
+    .sidebar.open {
+      width: 300px; /* Width when open */
+    }
+
+    .sidebar-content {
+      padding: 20px 30px;
+      color: #E2E8F0;
+    }
+
+    .sidebar h3 {
+      color: #4FD1C5; /* Teal for sidebar heading */
+      margin-bottom: 15px;
+      font-size: 1.5rem;
+    }
+
+    .sidebar ul {
+      list-style-type: disc;
+      margin-left: 20px;
+      padding: 0;
+    }
+
+    .sidebar li {
+      margin-bottom: 8px;
+    }
+
+    .sidebar p {
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .sidebar .closebtn {
+      position: absolute;
+      top: 15px;
+      right: 25px;
+      font-size: 40px;
+      color: #CBD5E0; /* Light Grey for close button */
+      cursor: pointer;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    .sidebar .closebtn:hover {
+      color: #fff;
+    }
+
+    /* Button to open the sidebar */
+    .openbtn {
+      font-size: 20px;
+      cursor: pointer;
+      background-color: #4A5568; /* Darker Blue-Grey for open button */
+      color: white;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      margin-bottom: 20px; /* Space below button */
+      transition: background-color 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .openbtn:hover {
+      background-color: #2D3748; /* Medium Dark Blue-Grey on hover */
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .main-content {
+        padding: 20px;
+      }
+      .sidebar.open {
+        width: 200px; /* Smaller width on tablets */
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        flex-direction: column; /* Stack elements on small screens */
+      }
+      .main-content {
+        padding: 15px;
+        margin-left: 0 !important; /* Reset margin for small screens */
+      }
+      .sidebar {
+        width: 0; /* Ensure it starts closed */
+        padding-top: 15px; /* Adjust padding for small screens */
+      }
+      .sidebar.open {
+        width: 100%; /* Full width on small screens */
+        height: auto; /* Adjust height based on content */
+        position: relative; /* Allow it to flow with content */
+        box-shadow: none; /* Remove shadow when full width */
+        border-bottom: 1px solid #4A5568; /* Border for separation */
+      }
+      .openbtn {
+        width: 100%; /* Full width button */
+        margin-bottom: 15px;
+      }
+      form, .output-section, .attempt {
+        padding: 15px;
+      }
+      h2 {
+        font-size: 2rem;
+      }
+      h3 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar structure -->
+  <div id="mySidebar" class="sidebar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <div class="sidebar-content">
+      <h3>About Autoprompter</h3>
+      <p>This project is a self-tuning prompt agent that refines user prompts through multiple iterations. It evaluates outputs based on a score, retains the best performing prompt, and stores history for reference.</p>
+      <p>Technologies used include Python backend, HTML/CSS frontend, and logic for automatic tuning loops and feedback evaluation.</p>
+    </div>
+  </div>
+
+  <!-- Main content area -->
+  <div class="main-content">
+    <button class="openbtn" onclick="openNav()">☰ Open Description</button>
+    <h2>⚡ Autoprompter: Self-Prompt-Tuning Agent</h2>
+
+    <form method="POST">
+      <textarea name="user_input" rows="5" placeholder="Ask something..."></textarea><br>
+      <button type="submit">Submit</button>
+    </form>
+
+    {% if result %}
+      <div class="output-section">
+        <h3>🧠 Final Output:</h3>
+        <p class="output-text">{{ result }}</p> <!-- Added class to apply white-space property -->
+
+        <button onclick="toggleAttempts()">Toggle Prompt History</button>
+
+        <div id="all-attempts">
+          <h3>📜 Prompt Tuning History:</h3>
+          {% for attempt in attempts %}
+            <div class="attempt">
+              <h4>🔁 Attempt {{ attempt.attempt }}</h4>
+              <p><strong>Prompt:</strong> {{ attempt.prompt }}</p>
+              <p><strong>Output:</strong> {{ attempt.output }}</p>
+              <p><strong>Score:</strong> {{ attempt.score }}</p>
+              <p><strong>Reason:</strong> {{ attempt.reason }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <script>
+    // Function to toggle the visibility of the prompt history
+    function toggleAttempts() {
+      const attemptsDiv = document.getElementById("all-attempts");
+      if (attemptsDiv.style.display === "none" || attemptsDiv.style.display === "") {
+        attemptsDiv.style.display = "block";
+      } else {
+        attemptsDiv.style.display = "none";
+      }
+    }
+
+    // Function to open the sidebar
+    function openNav() {
+      const sidebar = document.getElementById("mySidebar");
+      const mainContent = document.querySelector(".main-content");
+
+      sidebar.classList.add("open"); // Add 'open' class to expand sidebar
+      // Adjust main content margin to push it when sidebar is open
+      if (window.innerWidth > 600) { // Only push content on larger screens
+        mainContent.style.marginLeft = "300px";
+      }
+    }
+
+    // Function to close the sidebar
+    function closeNav() {
+      const sidebar = document.getElementById("mySidebar");
+      const mainContent = document.querySelector(".main-content");
+
+      sidebar.classList.remove("open"); // Remove 'open' class to collapse sidebar
+      // Reset main content margin
+      if (window.innerWidth > 600) { // Only reset margin on larger screens
+        mainContent.style.marginLeft = "0";
+      }
+    }
+
+    // Adjust main content margin on window resize if sidebar is open
+    window.addEventListener('resize', () => {
+      const sidebar = document.getElementById("mySidebar");
+      const mainContent = document.querySelector(".main-content");
+      if (sidebar.classList.contains("open")) {
+        if (window.innerWidth > 600) {
+          mainContent.style.marginLeft = "300px";
+        } else {
+          mainContent.style.marginLeft = "0"; // No margin push on small screens
+        }
+      } else {
+        mainContent.style.marginLeft = "0";
+      }
+    });
+
+    // Add a simple Roboto font link for better aesthetics
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+  </script>
+</body>
+</html>

@@ -4,14 +4,10 @@ from evaluator import evaluate_output
 from tuner import tune_prompt
 from memory import save_run
 
-def self_tuning_loop(
-    user_input: str,
-    base_prompt: str,
-   
-    score_threshold: int = 90,
-    max_attempts: int = 3
-):
+def self_tuning_loop(user_input: str,base_prompt: str,score_threshold: int = 90,max_attempts: int = 3):
     current_prompt = base_prompt
+    all_attempts = []
+
     for attempt in range(1, max_attempts + 1):
         print(f"\n🔁 Attempt {attempt}")
 
@@ -22,20 +18,23 @@ def self_tuning_loop(
         # 2. Evaluate output
         feedback = evaluate_output(user_input,output)
         print("📝 Evaluation:", feedback)
-
-        # 3. Log the run
-        save_run({
+        
+        run_data = {
+            "attempt": attempt,
             "input": user_input,
             "prompt": current_prompt,
             "output": output,
             "score": feedback["score"],
             "reason": feedback["reason"]
-        })
+        }
+        # 3. Log the run
+        save_run(run_data)
+        all_attempts.append(run_data)
 
         # 4. If score is good enough, stop
         if feedback["score"] >= score_threshold:
             print("✅ Good enough! Done.")
-            return output
+            return output,feedback,all_attempts
 
         # 5. Tune the prompt for next attempt
         current_prompt = tune_prompt(
@@ -48,20 +47,11 @@ def self_tuning_loop(
         print("🎯 New Prompt:\n", current_prompt)
 
     print("❌ Max attempts reached. Final output:")
-    return output
+    
+    return output,feedback,all_attempts
 
-if __name__ == "__main__":
+
+def process_input(user_input: str):
     default_prompt = "You are a helpful assistant. Complete the following task:\n\n{input}"
-
-    while True:
-        user_input = input("\n👤 Enter your task (or type 'exit' to quit): ").strip()
-        if user_input.lower() in ["exit", "quit"]:
-            print("👋 Exiting. Goodbye!")
-            break
-
-        final_output = self_tuning_loop(
-            user_input=user_input,
-            base_prompt=default_prompt
-        )
-
-        print("\n🎉 Final Output:\n", final_output)
+    final_output,feedback,all_attempts = self_tuning_loop(user_input=user_input, base_prompt=default_prompt)
+    return final_output,feedback,all_attempts
